@@ -19,12 +19,23 @@ jobs:
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
-
       # Faster docker environment
       - name: Set up Docker Buildx
         uses: crazy-max/ghaction-docker-buildx@373dafb963e27afd52567f12584adb676f5fd647
+
+      # relying on built in dependencies for: docker ce, kubernetes-cli, kubernetes-helm, node, gradle, awscli
+      - name: Install dependencies through brew
+        run: |
+          brew install skaffold \
+            kustomize \
+            kubectx \
+            pulumi \
+            stern \
+            aws-iam-authenticator
+
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      # consider pinning the version to 2020.06.24-laPaniscia
+      - uses: actions/checkout@v2
 
       # build and tag the docker image
       - name: Cache Docker layers
