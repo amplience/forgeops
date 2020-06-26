@@ -37,6 +37,17 @@ jobs:
       # consider pinning the version to 2020.06.24-laPaniscia
       - uses: actions/checkout@v2
 
+      # Configure AWS credentials for this user
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-west-1
+
+      - name: Install Node.js dependencies
+        run: npm install --prefix cluster/pulumi
+
       # build and tag the docker image
       - name: Cache Docker layers
         uses: actions/cache@v2
