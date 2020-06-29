@@ -53,20 +53,15 @@ jobs:
           echo "::set-env name=PULUMI_CONFIG_PASSPHRASE::${{ secrets.PULUMI_PASSPHRASE }}"
           pulumi login -l
 
-      - name: Configure Pulumi Infrastructure
+      - name: Configure and Deploy Pulumi Infrastructure
         run: |
           cd cluster/pulumi/aws/infra
-          pwd
           pulumi stack init aws-infra
           pulumi config set aws:region eu-west-1
           pulumi config set aws-infra:bucketName amp-forgerock-dev-eks-cdm
-
-      - name: Pulumi Deploy Infrastructure
-        run: |
-          pwd
           pulumi up -y
 
-      - name: Configure Pulumi EKS Cluster
+      - name: Configure and Deploy Pulumi EKS Cluster
         env:
           PULUMI_STACK_EKS_AMI: ami-060184dfafb3d8108
         run: |
@@ -80,15 +75,7 @@ jobs:
           pulumi config set dsnodes:ami $PULUMI_STACK_EKS_AMI
           pulumi config set frontendnodes:ami $PULUMI_STACK_EKS_AMI
           pulumi config set primarynodes:ami $PULUMI_STACK_EKS_AMI
-
-      - name: Pulumi Deploy Infrastructure
-        run: |
-          pwd
           pulumi up -y
-
-      - name: Export pulumi kubeconfig
-        run: |
-          pwd
           pulumi stack output kubeconfig > kubeconfig
           cat kubeconfig
 
