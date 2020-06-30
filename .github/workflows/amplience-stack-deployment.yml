@@ -66,9 +66,8 @@ jobs:
           PULUMI_STACK_EKS_AMI: ami-060184dfafb3d8108
         run: |
           cd cluster/pulumi/aws/eks
-          pwd
           pulumi stack init eks-small
-          pulumi config set --secret eks:pubKey ${{ secrets.CDM_ID_RSA_PUB }}
+          pulumi config set --secret eks:pubKey '${{ secrets.CDM_ID_RSA_PUB }}'
           pulumi config set aws:region eu-west-1
           pulumi config set dsdedicatednodes:ami $PULUMI_STACK_EKS_AMI
           pulumi config set workernodes:ami $PULUMI_STACK_EKS_AMI
