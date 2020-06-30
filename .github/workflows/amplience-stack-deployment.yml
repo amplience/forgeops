@@ -68,7 +68,7 @@ jobs:
           pulumi stack select aws-infra
           pulumi config set aws:region eu-west-1
           pulumi config set aws-infra:bucketName amp-forgerock-dev-eks-cdm
-          pulumi config set aws-infra:vpcCIDR 10.105.0.0/19
+          pulumi config set aws-infra:vpcCIDR 10.105.0.0/16
           pulumi up -y
 
       - name: Pulumi EKS Init
