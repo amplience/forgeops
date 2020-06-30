@@ -13,9 +13,12 @@ on:
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
-  build:
+  infrastructure:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
+
+    env:
+      PULUMI_CLOUD_STATE_S3_BUCKET: s3://thundercats-forgerock-state/dev
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -51,7 +54,7 @@ jobs:
       - name: Pulumi login
         run: |
           echo "::set-env name=PULUMI_CONFIG_PASSPHRASE::${{ secrets.PULUMI_PASSPHRASE }}"
-          pulumi login -l
+          pulumi login $PULUMI_CLOUD_STATE_S3_BUCKET
 
       - name: Configure and Deploy Pulumi Infrastructure
         run: |
@@ -59,6 +62,7 @@ jobs:
           pulumi stack init aws-infra
           pulumi config set aws:region eu-west-1
           pulumi config set aws-infra:bucketName amp-forgerock-dev-eks-cdm
+          pulumi config set aws-infra:vpcCIDR 10.105.0.0/19
           pulumi up -y
 
       - name: Configure and Deploy Pulumi EKS Cluster
