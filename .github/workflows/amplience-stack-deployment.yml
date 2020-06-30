@@ -65,6 +65,7 @@ jobs:
       - name: Configure and Deploy Pulumi Infrastructure
         run: |
           cd cluster/pulumi/aws/infra
+          pulumi stack select aws-infra
           pulumi config set aws:region eu-west-1
           pulumi config set aws-infra:bucketName amp-forgerock-dev-eks-cdm
           pulumi config set aws-infra:vpcCIDR 10.105.0.0/19
@@ -80,6 +81,7 @@ jobs:
           PULUMI_STACK_EKS_AMI: ami-060184dfafb3d8108
         run: |
           cd cluster/pulumi/aws/eks
+          pulumi stack select $PULUMI_EKS_STACK
           pulumi config set --secret eks:pubKey '${{ secrets.CDM_ID_RSA_PUB }}'
           pulumi config set aws:region eu-west-1
           pulumi config set dsdedicatednodes:ami $PULUMI_STACK_EKS_AMI
