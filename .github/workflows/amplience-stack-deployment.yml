@@ -95,7 +95,6 @@ jobs:
 
       - name: Setup Helm
         run: |
-          helm repo list
           helm repo add stable https://kubernetes-charts.storage.googleapis.com
           helm repo update
 
@@ -104,6 +103,11 @@ jobs:
           bin/ingress-controller-deploy.sh -e
           kubectl wait --for=condition=Ready pods --all --all-namespaces
           aws elbv2 describe-load-balancers | jq -r '.LoadBalancers[] | select(.DNSName | startswith("ExtIngressLB")) | .DNSName' | xargs host
+
+      - name: Deploy Certificate Manager and Wait
+        run: |
+          bin/certmanager-deploy.sh
+          kubectl wait --for=condition=Ready pods --all --all-namespaces
 
       # build and tag the docker image
       - name: Cache Docker layers
