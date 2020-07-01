@@ -17,10 +17,13 @@ jobs:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
+    # TODO
+    # Whilst we are deploying the eks-small cluster, there is not enough nodes to scale upto the required 3 'EKS_AM_REPLICAS', therefore using 2.
     env:
       PULUMI_CLOUD_STATE_S3_BUCKET: s3://thundercats-forgerock-state/dev
       PULUMI_EKS_STACK: eks-small
       SKAFFOLD_EKS_STACK: small
+      EKS_AM_REPLICAS: 2
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -126,7 +129,14 @@ jobs:
           bin/config.sh init --profile cdk --version 6.5
           skaffold run -f skaffold-6.5.yaml -p $SKAFFOLD_EKS_STACK
           kubens prod
-          kubectl wait --for=condition=Ready pods --all --all-namespaces
+          kubectl rollout status deployments/am
+          kubectl rollout status deployments/amster
+
+      - name: Scale am-pod
+        run: |
+          kubectl get pods | grep 'am-' | cut -f1 -d' ' | xargs kubectl delete pod
+          kubectl scale --replicas=$EKS_AM_REPLICAS deployment am
+          kubectl rollout status deployments/am
 
       # build and tag the docker image
       - name: Cache Docker layers
