@@ -20,6 +20,7 @@ jobs:
     env:
       PULUMI_CLOUD_STATE_S3_BUCKET: s3://thundercats-forgerock-state/dev
       PULUMI_EKS_STACK: eks-small
+      SKAFFOLD_EKS_STACK: small
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -124,6 +125,13 @@ jobs:
           skaffold config \
           set default-repo 395026163603.dkr.ecr.eu-west-1.amazonaws.com \
           -k aws
+
+      - name: Deploying the CDM
+        run: |
+          bin/config.sh init --profile cdk --version 6.5
+          skaffold run -f skaffold-6.5.yaml -p $SKAFFOLD_EKS_STACK
+          kubens prod
+          kubectl wait --for=condition=Ready pods --all --all-namespaces
 
       # build and tag the docker image
       - name: Cache Docker layers
