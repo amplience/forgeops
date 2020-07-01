@@ -120,14 +120,9 @@ jobs:
           bin/prometheus-deploy.sh
           kubectl wait --for=condition=Ready pods --all --all-namespaces
 
-      - name: Configure skaffold
+      - name: Configure skaffold and Deploy the CDM
         run: |
-          skaffold config \
-          set default-repo 395026163603.dkr.ecr.eu-west-1.amazonaws.com \
-          -k aws
-
-      - name: Deploying the CDM
-        run: |
+          skaffold config set default-repo 395026163603.dkr.ecr.eu-west-1.amazonaws.com -k aws
           bin/config.sh init --profile cdk --version 6.5
           skaffold run -f skaffold-6.5.yaml -p $SKAFFOLD_EKS_STACK
           kubens prod
