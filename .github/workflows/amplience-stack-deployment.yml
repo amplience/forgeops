@@ -91,7 +91,19 @@ jobs:
           pulumi config set primarynodes:ami $PULUMI_STACK_EKS_AMI
           pulumi up -y
           pulumi stack output kubeconfig > kubeconfig
-          cat kubeconfig
+          echo "::set-env name=KUBECONFIG::$PWD/kubeconfig:$HOME/.kube/config"
+
+      - name: Setup Helm
+        run: |
+          helm repo list
+          helm repo add stable https://kubernetes-charts.storage.googleapis.com
+          helm repo update
+
+      - name: Deploy NGINX Controller and Wait
+        run: |
+          bin/ingress-controller-deploy.sh -e
+          kubectl wait --for=condition=Ready pods --all --all-namespaces
+          aws elbv2 describe-load-balancers | jq -r '.LoadBalancers[] | select(.DNSName | startswith("ExtIngressLB")) | .DNSName' | xargs host
 
       # build and tag the docker image
       - name: Cache Docker layers
