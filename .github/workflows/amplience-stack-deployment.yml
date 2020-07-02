@@ -120,11 +120,14 @@ jobs:
           bin/prometheus-deploy.sh
           kubectl wait --for=condition=Ready pods --all --namespace monitoring
 
+      # TODO
+      # saffold run using --force=true to enable re-deployment over the top of an existing stack
+      # this should be reconsidered when moving this stack to production.
       - name: Configure skaffold and Deploy the CDM
         run: |
           skaffold config set default-repo 395026163603.dkr.ecr.eu-west-1.amazonaws.com/forgeops -k aws
           bin/config.sh init --profile cdk --version 6.5
-          skaffold run -f skaffold-6.5.yaml -p $SKAFFOLD_EKS_STACK
+          skaffold run --force=true -f skaffold-6.5.yaml -p $SKAFFOLD_EKS_STACK
           kubens prod
           kubectl rollout status deployments/am
           kubectl rollout status deployments/amster
