@@ -130,7 +130,7 @@ jobs:
         run: |
           skaffold config set default-repo 395026163603.dkr.ecr.eu-west-1.amazonaws.com/forgeops -k aws
           pushd bin
-          config.sh init --profile cdk --version 6.5
+          ./config.sh init --profile cdk --version 6.5
           popd
           skaffold run --force=true -f skaffold-6.5.yaml -p $SKAFFOLD_EKS_STACK
           kubens prod
