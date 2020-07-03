@@ -5,6 +5,8 @@ name: Forgerock Amplience Stack Deployment CI
 # Controls when the action will run. Triggers the workflow on push or pull request
 # events but only for the master branch
 on:
+  push:
+    branches: [master, feature/**]
   pull_request:
     branches: [master, feature/**]
 
@@ -39,6 +41,8 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       # consider pinning the version to 2020.06.24-laPaniscia
       - uses: actions/checkout@v2
+        with:
+          ref: tag/2020.06.24-laPaniscia
 
       # Configure AWS credentials for this user
       - name: Configure AWS credentials
