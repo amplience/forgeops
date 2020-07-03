@@ -1,0 +1,142 @@
+# This is a basic workflow to help you get started with Actions
+
+name: Forgerock Amplience Stack Deployment CI
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the master branch
+on:
+  push:
+    branches: [master, feature/**]
+  pull_request:
+    branches: [master, feature/**]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  deployment:
+    # As detailed here: https://backstage.forgerock.com/docs/forgeops/6.5/eks-cookbook/#chap-cookbook-benchmarking
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # TODO
+    # Whilst we are deploying the eks-small cluster, there is not enough nodes to scale upto the required 3 'EKS_AM_REPLICAS', therefore using 2.
+    env:
+      PULUMI_CLOUD_STATE_S3_BUCKET: s3://thundercats-forgerock-state/dev
+      PULUMI_EKS_STACK: eks-small
+      SKAFFOLD_EKS_STACK: small
+      EKS_AM_REPLICAS: 2
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # relying on built in dependencies for: docker ce, kubernetes-cli, kubernetes-helm, node, gradle, awscli
+      - name: Install dependencies through brew
+        run: |
+          brew install skaffold \
+            kustomize \
+            kubectx \
+            pulumi \
+            stern \
+            aws-iam-authenticator
+
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      # consider pinning the version to 2020.06.24-laPaniscia
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          ref: 2020.06.24-laPaniscia
+
+      # Configure AWS credentials for this user
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-west-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Install Node.js dependencies
+        run: npm install --prefix cluster/pulumi
+
+      - name: Pulumi login
+        run: |
+          echo "::set-env name=PULUMI_CONFIG_PASSPHRASE::${{ secrets.PULUMI_PASSPHRASE }}"
+          pulumi login $PULUMI_CLOUD_STATE_S3_BUCKET
+
+      - name: Pulumi Infra Init
+        run: |
+          cd cluster/pulumi/aws/infra
+          pulumi stack init aws-infra || true
+
+      - name: Configure and Deploy Pulumi Infrastructure
+        run: |
+          cd cluster/pulumi/aws/infra
+          pulumi stack select aws-infra
+          pulumi config set aws:region eu-west-1
+          pulumi config set aws-infra:bucketName amp-forgerock-dev-eks-cdm
+          pulumi config set aws-infra:vpcCIDR 10.105.0.0/16
+          pulumi up -y
+
+      - name: Pulumi EKS Init
+        run: |
+          cd cluster/pulumi/aws/eks
+          pulumi stack init $PULUMI_EKS_STACK || true
+
+      - name: Configure and Deploy Pulumi EKS Cluster
+        env:
+          PULUMI_STACK_EKS_AMI: ami-060184dfafb3d8108
+        run: |
+          cd cluster/pulumi/aws/eks
+          pulumi stack select $PULUMI_EKS_STACK
+          pulumi config set --secret eks:pubKey '${{ secrets.CDM_ID_RSA_PUB }}'
+          pulumi config set aws:region eu-west-1
+          pulumi config set dsdedicatednodes:ami $PULUMI_STACK_EKS_AMI
+          pulumi config set workernodes:ami $PULUMI_STACK_EKS_AMI
+          pulumi config set dsnodes:ami $PULUMI_STACK_EKS_AMI
+          pulumi config set frontendnodes:ami $PULUMI_STACK_EKS_AMI
+          pulumi config set primarynodes:ami $PULUMI_STACK_EKS_AMI
+          pulumi up -y
+          pulumi stack output kubeconfig > kubeconfig
+          echo "::set-env name=KUBECONFIG::$PWD/kubeconfig:$HOME/.kube/config"
+
+      - name: Setup Helm
+        run: |
+          helm repo add stable https://kubernetes-charts.storage.googleapis.com
+          helm repo update
+
+      - name: Deploy NGINX Controller and Wait
+        run: |
+          bin/ingress-controller-deploy.sh -e
+          kubectl wait --timeout=60s --for=condition=Ready pods --all --namespace nginx
+          echo "ELBV2 Host Addresses:"
+          aws elbv2 describe-load-balancers | jq -r '.LoadBalancers[] | select(.DNSName | startswith("ExtIngressLB")) | .DNSName' | xargs host
+
+      - name: Deploy Certificate Manager and Wait
+        run: |
+          bin/certmanager-deploy.sh
+          kubectl wait --timeout=60s --for=condition=Ready pods --all --namespace cert-manager
+
+      - name: Deploy and Wait for Prometheus, Grafana and Alertmanager
+        run: |
+          bin/prometheus-deploy.sh
+          kubectl wait --timeout=60s --for=condition=Ready pods --all --namespace monitoring
+
+      # TODO
+      # saffold run using --force=true to enable re-deployment over the top of an existing stack
+      # this should be reconsidered when moving this stack to production.
+      - name: Configure skaffold and Deploy the CDM
+        run: |
+          skaffold config set default-repo 395026163603.dkr.ecr.eu-west-1.amazonaws.com/forgeops -k aws
+          bin/config.sh init --profile cdk --version 6.5
+          skaffold run --force=true -f skaffold-6.5.yaml -p $SKAFFOLD_EKS_STACK
+          kubens prod
+          kubectl rollout status deployments/am
+          kubectl rollout status deployments/amster
+
+      - name: Scale am-pod
+        run: |
+          kubectl get pods | grep 'am-' | cut -f1 -d' ' | xargs kubectl delete pod
+          kubectl scale --replicas=$EKS_AM_REPLICAS deployment am
+          kubectl rollout status deployments/am

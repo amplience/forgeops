@@ -9,7 +9,7 @@
 #kubectl delete apiservice v1beta1.webhook.cert-manager.io
 set -oe pipefail
 
-VERSION="v0.14.1"
+VERSION="v0.15.1"
 ISSUER="ca"
 CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 CM_DIR="${CURRENT_DIR}/../cluster/addons/certmanager"
@@ -24,7 +24,7 @@ usage() {
 deploy() {
 
     # Deploy manifests
-    kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/releases/download/${VERSION}/cert-manager.yaml
+    kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/releases/download/${VERSION}/cert-manager-legacy.yaml
 
     # Wait for webhook deployment to be ready
     kubectl wait --for=condition=available deployment/cert-manager-webhook --timeout=300s -n cert-manager
@@ -48,7 +48,7 @@ deploy() {
 
 # Delete cert-manager and namespace
 delete() {
-    kubectl delete -f https://github.com/jetstack/cert-manager/releases/download/${VERSION}/cert-manager.yaml
+    kubectl delete -f https://github.com/jetstack/cert-manager/releases/download/${VERSION}/cert-manager-legacy.yaml
 
     exit 1
 }
