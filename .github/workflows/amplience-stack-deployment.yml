@@ -43,7 +43,7 @@ jobs:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
-          ref: tag/2020.06.24-laPaniscia
+          ref: tags/2020.06.24-laPaniscia
 
       # Configure AWS credentials for this user
       - name: Configure AWS credentials
