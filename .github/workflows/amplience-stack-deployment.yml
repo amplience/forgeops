@@ -42,6 +42,7 @@ jobs:
       # consider pinning the version to 2020.06.24-laPaniscia
       - uses: actions/checkout@v2
         with:
+          fetch-depth: 0
           ref: tag/2020.06.24-laPaniscia
 
       # Configure AWS credentials for this user
