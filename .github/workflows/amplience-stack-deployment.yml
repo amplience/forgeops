@@ -132,7 +132,7 @@ jobs:
           pushd bin
           ./config.sh init --profile cdk --version 6.5
           popd
-          skaffold run --force=true -f skaffold-6.5.yaml -p $SKAFFOLD_EKS_STACK
+          skaffold run -f skaffold-6.5.yaml -p $SKAFFOLD_EKS_STACK
           kubens prod
           kubectl rollout status deployments/am
           kubectl rollout status deployments/amster
