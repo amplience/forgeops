@@ -126,16 +126,19 @@ jobs:
       # TODO
       # saffold run using --force=true to enable re-deployment over the top of an existing stack
       # this should be reconsidered when moving this stack to production.
+
+      # Dependency Foo
+      # We have an interdependency between am/amster pods, amster configures am, so we need to
+      # sleep for a short time to allow the configuration to be deployed before finishing this step.
       - name: Configure skaffold and Deploy the CDM
         run: |
           skaffold config set default-repo 395026163603.dkr.ecr.eu-west-1.amazonaws.com/forgeops -k aws
-          pushd bin
-          ./config.sh init --profile cdk --version 6.5
-          popd
-          skaffold run -f skaffold-6.5.yaml -p $SKAFFOLD_EKS_STACK
+          bin/config.sh init --profile cdk --version 6.5
+          skaffold run --force=true -f skaffold-6.5.yaml -p $SKAFFOLD_EKS_STACK
           kubens prod
           kubectl rollout status deployments/am
           kubectl rollout status deployments/amster
+          sleep 5s
 
       - name: Scale am-pod
         run: |
