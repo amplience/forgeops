@@ -18,8 +18,8 @@ configMapGenerator:
   # The FQDN and URLs here should match your ingress or istio gateway definitions
   literals:
   - FQDN=$(NAMESPACE).forgerock.dev.adis.ws
-  - SUBDOMAIN=forgerock
-  - DOMAIN=dev.adis.ws
+  - SUBDOMAIN=forgerock.dev
+  - DOMAIN=adis.ws
   - AM_URL=https://$(NAMESPACE).forgerock.dev.adis.ws/am
   - AM_ADMIN_URL=https://$(NAMESPACE).forgerock.dev.adis.ws/am/ui-admin/
   - IDM_ADMIN_URL=https://$(NAMESPACE).forgerock.dev.adis.ws/admin
