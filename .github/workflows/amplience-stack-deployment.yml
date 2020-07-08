@@ -124,7 +124,7 @@ jobs:
           kubectl wait --timeout=60s --for=condition=Ready pods --all --namespace monitoring
 
       - name: Delete any existing CDM stack.
-        run: skaffold delete -f skaffold.yaml -p $SKAFFOLD_EKS_STACK
+        run: skaffold delete -f skaffold-6.5.yaml -p $SKAFFOLD_EKS_STACK
 
       # Dependency Foo
       # We have an interdependency between am/amster pods, amster configures am, so we need to
@@ -132,8 +132,8 @@ jobs:
       - name: Configure and Deploy the CDM
         run: |
           skaffold config set default-repo 395026163603.dkr.ecr.eu-west-1.amazonaws.com/forgeops -k aws
-          bin/config.sh init --profile cdk --version 7.0
-          skaffold run -f skaffold.yaml -p $SKAFFOLD_EKS_STACK
+          bin/config.sh init --profile amplience --version 6.5
+          skaffold run -f skaffold-6.5.yaml -p $SKAFFOLD_EKS_STACK
           kubens prod
           kubectl rollout status deployments/am
           kubectl rollout status deployments/amster
